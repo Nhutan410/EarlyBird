@@ -3,8 +3,13 @@ import numpy as np
 
 
 def mot_metrics_pedestrian(tSource, gtSource):
-    gt = np.loadtxt(gtSource, delimiter=',')
-    t = np.loadtxt(tSource, delimiter=',')
+    # ndmin=2: keep a 2-D array even when the file has a single line; an empty prediction file
+    # (e.g. an untrained model with no detection above conf_threshold) becomes a (0, ncol) array
+    # instead of crashing on the column indexing below.
+    gt = np.loadtxt(gtSource, delimiter=',', ndmin=2)
+    t = np.loadtxt(tSource, delimiter=',', ndmin=2)
+    if t.size == 0:
+        t = np.zeros((0, gt.shape[1]))
 
     acc = mm.MOTAccumulator()
     for frame in np.unique(gt[:, 0]).astype(int):
