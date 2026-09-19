@@ -1,0 +1,34 @@
+# Dependencies for running EarlyBird on Kaggle / Colab (or any recent Python >= 3.10).
+#
+# Differences from requirements.txt (the original pinned list from 2023):
+#   * No version pins -- the old pins (scipy==1.10.1, numpy==1.24.2, Pillow==9.5.0, ...)
+#     have no wheels for the Python/torch that Kaggle ships today. torch/torchvision are
+#     NOT listed either: use the CUDA build preinstalled on the platform.
+#   * `lapx` instead of `lap==0.4.0` -- `lap` 0.4.0 must be built from source and fails on
+#     modern Python; `lapx` is a maintained drop-in that still installs as `import lap`.
+#   * `nuscenes-devkit` is NOT in this list: its metadata pins matplotlib<3.6 and Shapely<2,
+#     which forces pip to build ancient versions from source. Install it separately with
+#         pip install --no-deps nuscenes-devkit
+#     The only runtime deps of the `nuscenes.eval.*` code path used by evaluation/mAP_nuscenes.py
+#     are pyquaternion + cachetools, which ARE listed below.
+#   * `mmcv` removed -- it is only imported by models/ops/ms_deform_attn.py, which no code
+#     path uses (MVDet model does not use deformable attention). Skipping it avoids a
+#     10-30 min CUDA build on Kaggle.
+#   * `tensorboard` added explicitly so Lightning picks its default TensorBoardLogger:
+#     main.py::plot_data calls logger.experiment.add_figure, which the CSVLogger fallback
+#     (used when neither tensorboard nor tensorboardX is importable) does not have.
+kornia
+matplotlib
+opencv-python
+lightning[extra]
+scipy
+einops
+pyquaternion  # nuscenes.eval runtime dep (nuscenes-devkit itself: pip install --no-deps nuscenes-devkit)
+cachetools    # nuscenes.eval runtime dep
+lapx
+motmetrics
+Pillow
+pytorch_metric_learning
+efficientnet_pytorch
+timm
+tensorboard

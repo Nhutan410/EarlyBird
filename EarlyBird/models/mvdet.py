@@ -17,7 +17,7 @@ class MVDet(nn.Module):
                  num_ids=None,
                  latent_dim=512,
                  encoder_type='res18',
-                 device=torch.device('cuda')):
+                 device=None):  # mean/std are moved to the input device in forward(), no need to pin them to CUDA here
         super().__init__()
         assert (encoder_type in ['res101', 'res50', 'res18', 'res34', 'effb0', 'effb4', 'swin_t'])
 
@@ -109,7 +109,7 @@ class MVDet(nn.Module):
         featpix_T_cams_ = utils.geom.scale_intrinsics(pix_T_cams_, sx, sy)  # B*S,4,4
 
         featpix_T_ref_ = torch.matmul(featpix_T_cams_[:, :3, :3], cams_T_ref_[:, :3, [0, 1, 3]])  # B*S,3,3
-        ref_T_mem = vox_util.get_ref_T_mem(B, self.Y, self.Z, self.X)  # B,4,4
+        ref_T_mem = vox_util.get_ref_T_mem(B, self.Y, self.Z, self.X, device=feat_cams_.device)  # B,4,4
         ref_T_mem = ref_T_mem[0, [0, 1, 3]][:, [0, 1, 3]]  # 3,3
         featpix_T_mem_ = torch.matmul(featpix_T_ref_, ref_T_mem)  # B*S,3,3
         mem_T_featpix = torch.inverse(featpix_T_mem_)  # B*S,3,3

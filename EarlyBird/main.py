@@ -318,6 +318,11 @@ class WorldTrackModel(pl.LightningModule):
         nusc_metrics, nusc_metric_data_list = nusc_eval.evaluate()
         self.log(f'detect/mAP_3D', nusc_metrics.serialize()['mean_dist_aps']['pedestrian'] * 100)
 
+        # also persist the logged test metrics as JSON so they survive after the console output is gone
+        metrics_path = osp.join(log_dir, 'test_metrics.json')
+        with open(metrics_path, 'w') as json_file:
+            json.dump({k: float(v) for k, v in self.trainer.callback_metrics.items()}, json_file, indent=4)
+
     def plot_data(self, target, output, batch_idx=0):
         center_e = output['instance_center']
         center_g = target['center_bev']

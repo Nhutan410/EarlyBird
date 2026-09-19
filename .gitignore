@@ -215,3 +215,7 @@ WorldTrack/.ipynb_checkpoints/
 # IDEs
 .idea
 .vscode
+# Lightning / experiment outputs
+lightning_logs/
+*.ckpt
+EarlyBird/data/

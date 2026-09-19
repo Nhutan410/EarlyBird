@@ -1,7 +1,7 @@
 data:
   class_path: datasets.PedestrianDataModule
   init_args:
-    data_dir: "/usr/home/tee/Developer/datasets/WILDTRACK"
+    data_dir: "data/Wildtrack"  # relative to this EarlyBird/ dir; symlink or copy the dataset here (or override with --data.init_args.data_dir=...)
 model:
   resolution: [120, 2, 360]  # Y,Z,X
   bounds: [0, 1440, 0, 480, 0, 200]  # xmin,xmax,ymin,ymax,zmin,zmax

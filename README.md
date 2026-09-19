@@ -35,6 +35,38 @@ python main.py test -c model_weights/config.yaml \
     --ckpt model_weights/model-epoch=35-val_loss=6.50.ckpt
 ```
 
+## Running on Kaggle / recent environments (this fork)
+
+This fork ([Nhutan410/EarlyBird](https://github.com/Nhutan410/EarlyBird)) keeps the model,
+losses, training scheme and evaluation of the original code unchanged; it only makes the
+code run out-of-the-box on Kaggle / Colab with current torch, lightning and numpy 2:
+
+- `requirements-kaggle.txt` -- unpinned dependency list (see the comments inside for why
+  `lap` -> `lapx`, why `mmcv` is not needed, and why `nuscenes-devkit` is installed with
+  `--no-deps`).
+- `configs/d_wildtrack.yml` / `configs/d_multiviewx.yml` -- `data_dir` now points to
+  `data/Wildtrack` / `data/MultiviewX` (relative to `EarlyBird/`) instead of the author's
+  absolute path. Override on the command line with `--data.init_args.data_dir=...`.
+- `models/mvdet.py` -- no longer pins the normalisation constants / voxel transform to
+  `cuda` (they follow the input tensor's device), so the code also runs on CPU for smoke
+  tests. Numerically identical on GPU.
+- `main.py` -- `test` additionally writes `test_metrics.json` next to `moda_pred.txt` etc.
+  in the run's log dir.
+
+```shell
+pip install -r requirements-kaggle.txt
+pip install --no-deps nuscenes-devkit
+cd EarlyBird
+# data/Wildtrack must be a WRITABLE directory (gt.txt is written into it): on Kaggle create a real
+# directory and symlink each entry of the read-only /kaggle/input/... dataset into it.
+python main.py fit  -c configs/t_fit.yml -c configs/d_wildtrack.yml --trainer.default_root_dir=/kaggle/working/earlybird_run
+python main.py test -c /kaggle/working/earlybird_run/lightning_logs/version_0/config.yaml \
+    --ckpt_path /kaggle/working/earlybird_run/lightning_logs/version_0/checkpoints/last.ckpt
+```
+Resume an interrupted `fit` by adding `--ckpt_path <run>/lightning_logs/version_X/checkpoints/last.ckpt`.
+The full Kaggle notebook lives in the capstone project repo
+(`notebooks/earlybird/earlybird_wildtrack_tteepe_kaggle.ipynb`).
+
 ## Acknowledgement
 - [Simple-BEV](https://simple-bev.github.io): Adam W. Harley
 - [MVDeTr](https://github.com/hou-yz/MVDeTr): Yunzhong Hou
