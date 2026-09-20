@@ -2,6 +2,7 @@ data:
   class_path: datasets.PedestrianDataModule
   init_args:
     data_dir: "data/Wildtrack"  # relative to this EarlyBird/ dir; symlink or copy the dataset here (or override with --data.init_args.data_dir=...)
+    drop_ratio: 0  # 0 = full annotations; 20/45/60 = train on data_dir/drop_annotations/drop_<N>/annotations_positions (val/test always full)
 model:
   resolution: [120, 2, 360]  # Y,Z,X
   bounds: [0, 1440, 0, 480, 0, 200]  # xmin,xmax,ymin,ymax,zmin,zmax

@@ -17,6 +17,7 @@ class PedestrianDataModule(pl.LightningDataModule):
             resolution=None,
             bounds=None,
             load_depth=False,
+            drop_ratio: int = 0,
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -25,6 +26,7 @@ class PedestrianDataModule(pl.LightningDataModule):
         self.resolution = resolution
         self.bounds = bounds
         self.load_depth = load_depth
+        self.drop_ratio = int(drop_ratio)  # 0 = full annotations; N = train on drop_annotations/drop_N
         self.dataset = os.path.basename(self.data_dir)
 
         self.data_predict = None
@@ -46,6 +48,7 @@ class PedestrianDataModule(pl.LightningDataModule):
                 is_train=True,
                 resolution=self.resolution,
                 bounds=self.bounds,
+                drop_ratio=self.drop_ratio,
             )
         if stage == 'fit' or stage == 'validate':
             self.data_val = PedestrianDataset(

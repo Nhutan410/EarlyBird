@@ -50,6 +50,13 @@ code run out-of-the-box on Kaggle / Colab with current torch, lightning and nump
 - `models/mvdet.py` -- no longer pins the normalisation constants / voxel transform to
   `cuda` (they follow the input tensor's device), so the code also runs on CPU for smoke
   tests. Numerically identical on GPU.
+- `data.init_args.drop_ratio` (default 0, no behaviour change) -- partial-annotation training:
+  with `drop_ratio: N` the *train* split reads
+  `data_dir/drop_annotations/drop_N/annotations_positions/` (same frame files with some
+  pedestrians removed); val/test always use the full `annotations_positions/`.
+- `utils/console_log.EpochConsoleLogger` -- optional callback printing one line per epoch
+  (`--trainer.callbacks+=utils.console_log.EpochConsoleLogger`); the default progress bar is
+  silent when stdout is not a terminal.
 - `main.py` -- `test` additionally writes `test_metrics.json` next to `moda_pred.txt` etc.
   in the run's log dir.
 

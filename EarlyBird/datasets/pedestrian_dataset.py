@@ -24,6 +24,7 @@ class PedestrianDataset(VisionDataset):
             bounds=(-500, 500, -320, 320, 0, 2),
             final_dim: tuple = (720, 1280),
             resize_lim: list = (0.8, 1.2),
+            drop_ratio: int = 0,
     ):
         super().__init__(base.root)
         self.base = base
@@ -39,6 +40,17 @@ class PedestrianDataset(VisionDataset):
         self.kernel_size = 1.5
         self.max_objects = 60
         self.img_downsample = 4
+        self.drop_ratio = int(drop_ratio)
+
+        # Partial annotation: train reads <root>/drop_annotations/drop_<ratio>/annotations_positions
+        # (same frame files, some pedestrians removed); val/test always use the full GT.
+        if self.drop_ratio > 0 and self.is_train:
+            self.anno_dir = os.path.join(self.root, 'drop_annotations', f'drop_{self.drop_ratio}',
+                                         'annotations_positions')
+        else:
+            self.anno_dir = os.path.join(self.root, 'annotations_positions')
+        if not os.path.isdir(self.anno_dir):
+            raise FileNotFoundError(f'Annotation directory not found: {self.anno_dir}')
 
         self.Y, self.Z, self.X = self.resolution
         self.scene_centroid = torch.tensor((0., 0., 0.)).reshape([1, 3])
@@ -98,11 +110,11 @@ class PedestrianDataset(VisionDataset):
 
     def download(self, frame_range):
         num_frame, num_world_bbox, num_imgs_bbox = 0, 0, 0
-        for fname in sorted(os.listdir(os.path.join(self.root, 'annotations_positions'))):
+        for fname in sorted(os.listdir(self.anno_dir)):
             frame = int(fname.split('.')[0])
             if frame in frame_range:
                 num_frame += 1
-                with open(os.path.join(self.root, 'annotations_positions', fname)) as json_file:
+                with open(os.path.join(self.anno_dir, fname)) as json_file:
                     all_pedestrians = json.load(json_file)
                 world_pts, world_pids = [], []
                 img_bboxs, img_pids = [[] for _ in range(self.num_cam)], [[] for _ in range(self.num_cam)]
@@ -120,11 +132,11 @@ class PedestrianDataset(VisionDataset):
                                                   (pedestrian['views'][cam]))
                             img_pids[cam].append(pedestrian['personID'])
                             num_imgs_bbox += 1
-                self.world_gt[frame] = (np.array(world_pts), np.array(world_pids))
+                self.world_gt[frame] = (np.array(world_pts).reshape(-1, 2), np.array(world_pids).reshape(-1))
                 self.imgs_gt[frame] = {}
                 for cam in range(self.num_cam):
                     # x1y1x2y2
-                    self.imgs_gt[frame][cam] = (np.array(img_bboxs[cam]), np.array(img_pids[cam]))
+                    self.imgs_gt[frame][cam] = (np.array(img_bboxs[cam]).reshape(-1, 4), np.array(img_pids[cam]).reshape(-1))
 
     def get_bev_gt(self, mem_pts, pids):
         center = torch.zeros((1, self.Y, self.X), dtype=torch.float32)
@@ -157,6 +169,9 @@ class PedestrianDataset(VisionDataset):
 
         valid_mask = torch.zeros((1, H, W), dtype=torch.bool)
         person_ids = torch.zeros((1, H, W), dtype=torch.long)
+
+        if img_pts.shape[0] == 0:  # no box in this camera (possible with dropped annotations)
+            return center, offset, size, skeleton, person_ids, valid_mask
 
         xmin = (img_pts[:, 0] * sx - crop[0]) / self.img_downsample
         ymin = (img_pts[:, 1] * sy - crop[1]) / self.img_downsample
@@ -300,6 +315,8 @@ class PedestrianDataset(VisionDataset):
         gt_boxes = torch.zeros((len(img_gt), self.max_objects, 4))  #
         gt_ids = torch.zeros(len(img_gt), self.max_objects, dtype=torch.long)
         for cam_idx, (box, ids) in self.imgs_gt[frame].items():
+            if len(ids) == 0:
+                continue
             gt_boxes[cam_idx, :len(ids)] = torch.tensor(box)
             gt_ids[cam_idx, :len(ids)] = torch.tensor(ids)
 
