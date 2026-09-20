@@ -15,11 +15,13 @@ class EpochConsoleLogger(Callback):
     def on_fit_start(self, trainer, pl_module):
         self._t0 = time.time()
         self._start_epoch = trainer.current_epoch  # non-zero when resuming
+        if not trainer.is_global_zero:  # under DDP only rank 0 prints
+            return
         print(f'[epoch-log] fit start: epoch {trainer.current_epoch}/{trainer.max_epochs - 1}, '
               f'{trainer.num_training_batches} train batches/epoch', flush=True)
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        if trainer.sanity_checking:
+        if trainer.sanity_checking or not trainer.is_global_zero:
             return
         m = trainer.callback_metrics
         elapsed = time.time() - self._t0
